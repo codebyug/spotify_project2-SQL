@@ -55,13 +55,13 @@ In advanced stages, the focus shifts to improving query performance. Some optimi
 - **Indexing**: Adding indexes on frequently queried columns.
 - **Query Execution Plan**: Using `EXPLAIN ANALYZE` to review and refine query performance.
   
----
 4.Retrieve the names of all tracks that have more than 1 billion streams.
 
 select * from spotify
 where stream >= 100000000;
 
 5.List all albums along with their respective artists.
+
 select distinct(album), artist from spotify
 group by 1,2
 
