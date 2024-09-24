@@ -74,34 +74,44 @@ select * from spotify
 where album_type= 'single';
 
 8.Count the total number of tracks by each artist.
+
 select artist, count(track) as counts from spotify
 group by 1
 order by 2 desc;
 
 9.Calculate the average danceability of tracks in each album.
 
-select album ,round(avg(danceability):: numeric,2) as average from spotify
+select album ,
+round(avg(danceability):: numeric,2) as average 
+from spotify
 group by 1
 order by 2 desc;
 
 10.Find the top 5 tracks with the highest energy values.
-select track,energy from spotify
+
+select track,
+energy from spotify
 group by 1,2
 order by 2 desc
 limit 5;
 
 11.List all tracks along with their views and likes where official_video = TRUE.
-select track,sum(views),sum(likes )from spotify 
+select track,
+sum(views),
+sum(likes )from spotify 
 where official_video= 'true'
 	group by 1
 	order  by 2,3 desc;
  
 12.For each album, calculate the total views of all associated tracks.
-select track,album,sum(views) as tot, from spotify
+select track,
+       album,
+       sum(views) as tot, from spotify
 group by 1,2
 order by 3 desc;
 
 13.Retrieve the track names that have been streamed on Spotify more than YouTube.
+
 select * from
 	(
 select track,
@@ -132,6 +142,7 @@ where dk<=3;
 
 select track ,liveness from spotify
 where liveness > (select avg(liveness) from spotify);
+
 16.Use a WITH clause to calculate the difference between the highest and 
 lowest energy values for tracks in each album.
 with cte1 as
@@ -147,7 +158,8 @@ select track,album,
 order by 3 desc;
 
 17.Find tracks where the energy-to-liveness ratio is greater than 1.2.
-sELECT Track, Artist, Album, Energy, Liveness,
+
+SELECT Track, Artist, Album, Energy, Liveness,
        (Energy / Liveness) AS energy_to_liveness_ratio
 FROM spotify
 WHERE (Energy / Liveness) > 1.2
@@ -178,7 +190,7 @@ and views < (select avg(views) from spotify);
       COUNT(CASE WHEN most_played_on = 'Spotify' THEN 1 END) * 100.0 / COUNT(*) AS spotify_percentage
 	 from spotify
 group by artist
-order by 2 asc
+order by 2 asc;
 
 22. Calculate the Ratio of Spotify Streams to YouTube Views for Each Track
 sELECT Track, Artist, Stream, Views, 
