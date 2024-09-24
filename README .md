@@ -47,69 +47,154 @@ Before diving into SQL, it’s important to understand the dataset thoroughly. T
 - `Album_type`: The type of album (e.g., single or album).
 - Various metrics such as `danceability`, `energy`, `loudness`, `tempo`, and more.
 
-### 4. Querying the Data
+### 2.. Querying the Data
 After the data is inserted, various SQL queries can be written to explore and analyze the data. Queries are categorized into **easy**, **medium**, and **advanced** levels to help progressively develop SQL proficiency.
 
-#### Easy Queries
-- Simple data retrieval, filtering, and basic aggregations.
-  
-#### Medium Queries
-- More complex queries involving grouping, aggregation functions, and joins.
-  
-#### Advanced Queries
-- Nested subqueries, window functions, CTEs, and performance optimization.
-
-### 5. Query Optimization
+3. Query Optimization
 In advanced stages, the focus shifts to improving query performance. Some optimization strategies include:
 - **Indexing**: Adding indexes on frequently queried columns.
 - **Query Execution Plan**: Using `EXPLAIN ANALYZE` to review and refine query performance.
   
 ---
+4.Retrieve the names of all tracks that have more than 1 billion streams.
 
-## 15 Practice Questions
+select * from spotify
+where stream >= 100000000;
 
-### Easy Level
-1. Retrieve the names of all tracks that have more than 1 billion streams.
-2. List all albums along with their respective artists.
-3. Get the total number of comments for tracks where `licensed = TRUE`.
-4. Find all tracks that belong to the album type `single`.
-5. Count the total number of tracks by each artist.
+5.List all albums along with their respective artists.
+select distinct(album), artist from spotify
+group by 1,2
 
-### Medium Level
-1. Calculate the average danceability of tracks in each album.
-2. Find the top 5 tracks with the highest energy values.
-3. List all tracks along with their views and likes where `official_video = TRUE`.
-4. For each album, calculate the total views of all associated tracks.
-5. Retrieve the track names that have been streamed on Spotify more than YouTube.
+6.Get the total number of comments for tracks where licensed = TRUE.
+ select sum(comments) from spotify
+  where licensed= 'true';
+  
+7.Find all tracks that belong to the album type single.
+select * from spotify
+where album_type= 'single';
 
-### Advanced Level
-1. Find the top 3 most-viewed tracks for each artist using window functions.
-2. Write a query to find tracks where the liveness score is above the average.
-3. **Use a `WITH` clause to calculate the difference between the highest and lowest energy values for tracks in each album.**
-```sql
-WITH cte
-AS
-(SELECT 
-	album,
-	MAX(energy) as highest_energy,
-	MIN(energy) as lowest_energery
+8.Count the total number of tracks by each artist.
+select artist, count(track) as counts from spotify
+group by 1
+order by 2 desc;
+
+9.Calculate the average danceability of tracks in each album.
+
+select album ,round(avg(danceability):: numeric,2) as average from spotify
+group by 1
+order by 2 desc;
+
+10.Find the top 5 tracks with the highest energy values.
+select track,energy from spotify
+group by 1,2
+order by 2 desc
+limit 5;
+
+11.List all tracks along with their views and likes where official_video = TRUE.
+select track,sum(views),sum(likes )from spotify 
+where official_video= 'true'
+	group by 1
+	order  by 2,3 desc;
+ 
+12.For each album, calculate the total views of all associated tracks.
+select track,album,sum(views) as tot, from spotify
+group by 1,2
+order by 3 desc;
+
+13.Retrieve the track names that have been streamed on Spotify more than YouTube.
+select * from
+	(
+select track,
+   coalesce (sum(case when most_played_on='Spotify' then stream end),0) as spotify_count,
+   coalesce( sum(case when most_played_on='Youtube' then stream end) ,0)as youtube_count
+	from spotify
+	group by 1
+	)t1
+where spotify_count > youtube_count
+and spotify_count <> 0;
+
+14.Find the top 3 most-viewed tracks for each artist using window functions.
+
+with view_cte as
+	(
+	select artist,
+	    track,
+	    sum(views) as tot ,
+       dense_rank() over(partition by artist order by sum(views) desc) as dk
+from spotify
+group by 1,2
+order by 1
+	)
+select * from view_cte
+where dk<=3;
+
+15.Write a query to find tracks where the liveness score is above the average.
+
+select track ,liveness from spotify
+where liveness > (select avg(liveness) from spotify);
+16.Use a WITH clause to calculate the difference between the highest and 
+lowest energy values for tracks in each album.
+with cte1 as
+	(
+select 
+   track,album,
+max(energy) as high_energy,
+min(energy) as low_energy from spotify
+group by 1,2
+	)
+select track,album,
+   round((high_energy-low_energy):: numeric,2)as energy_diff from cte1
+order by 3 desc;
+
+17.Find tracks where the energy-to-liveness ratio is greater than 1.2.
+sELECT Track, Artist, Album, Energy, Liveness,
+       (Energy / Liveness) AS energy_to_liveness_ratio
 FROM spotify
-GROUP BY 1
-)
-SELECT 
-	album,
-	highest_energy - lowest_energery as energy_diff
-FROM cte
-ORDER BY 2 DESC
-```
-   
-5. Find tracks where the energy-to-liveness ratio is greater than 1.2.
-6. Calculate the cumulative sum of likes for tracks ordered by the number of views, using window functions.
+WHERE (Energy / Liveness) > 1.2
+ORDER BY energy_to_liveness_ratio DESC;
+
+18.Calculate the cumulative sum of likes for tracks ordered by the number of views, using window functions.
+
+SELECT Track, Artist, Views, Likes, 
+       SUM(Likes) OVER (ORDER BY Views desc) AS cumulative_likes
+FROM spotify
+ORDER BY Views;
+19. Find the Artist with the Most Streamed Tracks on Spotify and the Total Streams
+
+select artist,sum(stream) as streams
+	from spotify
+	where most_played_on ='Spotify'
+group by 1
+order by 2 desc
+limit 1;
+
+20.Find Tracks with Above-Average Spotify Streams and Below-Average YouTube Views
+select track from spotify
+where stream > (select avg(stream) from spotify)
+and views < (select avg(views) from spotify);
+
+ 21.Find the Percentage of Tracks for Each Artist Where Spotify is the Top Platform
+ select artist,
+      COUNT(CASE WHEN most_played_on = 'Spotify' THEN 1 END) * 100.0 / COUNT(*) AS spotify_percentage
+	 from spotify
+group by artist
+order by 2 asc
+
+22. Calculate the Ratio of Spotify Streams to YouTube Views for Each Track
+sELECT Track, Artist, Stream, Views, 
+       (Stream::float / NULLIF(Views, 0)) AS ratio
+FROM spotify
+WHERE Views > 0
+ORDER BY ratio DESC;
+
+23.Find the Tracks Where Energy is High but Valence is Low
+
+SELECT Track, Artist, Energy, Valence
+FROM spotify
+WHERE Energy > 0.8 AND Valence < 0.3
+ORDER BY Energy DESC, Valence ASC;
 
 
-Here’s an updated section for your **Spotify Advanced SQL Project and Query Optimization** README, focusing on the query optimization task you performed. You can include the specific screenshots and graphs as described.
-
----
 
 ## Query Optimization Technique 
 
